@@ -1,0 +1,66 @@
+import java.rmi.NotBoundException;
+import java.rmi.RMISecurityManager;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.util.Scanner;
+import java.util.Vector;
+
+@SuppressWarnings("deprecation")
+public class ChatClient 
+{
+	public static void main(String[] args) 
+	{
+		if (System.getSecurityManager() == null)	//zarzadca bezpieczenstwa
+			System.setSecurityManager(new RMISecurityManager());
+		if(args.length < 2) 
+		{
+			System.out.println("Usage: ChatClient <server host name> <msg>");
+			System.exit(-1);
+		}
+		
+		IChat remoteObject; // referencja do zdalnego obiektu
+		Registry reg; // rejestr nazw obiektow
+		try 
+		{
+			// pobranie referencji do rejestru nazw obiektow
+			reg = LocateRegistry.getRegistry(args[0]);
+			// odszukanie zdalnego obiektu po jego nazwie
+			remoteObject = (IChat) reg.lookup("ChatServer");
+			ICallback callback = new ClientCallback();
+			// wywolanie metod zdalnego obiektu
+			remoteObject.zarejestruj("LM", callback);
+			
+			boolean a=true;
+			while(a)
+			{
+				Vector <String > vec = remoteObject.infromuj("*");
+				System.out.println("There are " + vec.size() + " user(s):");
+				
+				Scanner scan = new Scanner(System.in);
+				String line = null;
+				if(scan.hasNextLine())
+					line = scan.nextLine();
+				if(line=="exit")
+					a=false;
+			}
+			
+			Vector <String > vec = remoteObject.infromuj("*");
+			System.out.println("There are " + vec.size() + " user(s):");
+			for (String s : vec)
+				System.out.println(" - " + s);
+			remoteObject.komunikuj("SM", args[1]);
+			remoteObject.wyrejestruj("LM");
+			remoteObject.wyrejestruj("SM");
+			System.exit(0);
+		}
+		catch(RemoteException e) 
+		{
+			e.printStackTrace();
+		}
+		catch(NotBoundException e) 
+		{
+			e.printStackTrace();
+		}
+	}
+}

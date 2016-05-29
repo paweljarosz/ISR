@@ -1,0 +1,91 @@
+import java.rmi.NotBoundException;
+import java.rmi.RMISecurityManager;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.util.Scanner;
+import java.util.Vector;
+
+@SuppressWarnings("deprecation")
+public class ChatClient 
+{
+	public static void main(String[] args) 
+	{
+		if (System.getSecurityManager() == null)	//zarzadca bezpieczenstwa
+			System.setSecurityManager(new RMISecurityManager());
+		if(args.length < 2) 
+		{
+			System.out.println("Usage: ChatClient <server host name> <msg>");
+			System.exit(-1);
+		}
+		else
+			System.out.println("Chat Client Ready");
+		
+		IChat remoteObject; // referencja do zdalnego obiektu
+		Registry reg; // rejestr nazw obiektow
+		try 
+		{
+			// pobranie referencji do rejestru nazw obiektow
+			reg = LocateRegistry.getRegistry(args[0]);
+			// odszukanie zdalnego obiektu po jego nazwie
+			remoteObject = (IChat) reg.lookup("ChatServer");
+			ICallback callback = new ClientCallback();
+			// wywolanie metod zdalnego obiektu
+			//remoteObject.zarejestruj("LM", callback);
+			System.out.println(" |        Pawel Jarosz Chat 1.0          |");
+			System.out.println(" |  [+| add, -| out, ?| info, !| say]    |");
+			
+			boolean a=true;
+			while(a)
+			{				
+				Scanner scan = new Scanner(System.in);
+				String line = null;
+				if(scan.hasNextLine())
+					line = scan.nextLine();
+				if(line=="exit")
+					a=false;
+				
+				String[] kod = line.split("[|]");
+				switch(kod[0])
+				{
+					case "+":
+						remoteObject.zarejestruj(kod[1], callback);
+						System.out.println("+| Added user: "+kod[1]);
+						break;
+					case "-":
+						remoteObject.wyrejestruj(kod[1]);
+						System.out.println("-| Deleted user: "+kod[1]);
+						break;
+					case "?":
+						System.out.println("?");
+						Vector <String > vec = remoteObject.infromuj("*");
+						System.out.println(" |  There are " + vec.size() + " user(s)                  |");
+						break;
+					case "!":
+						System.out.println("!");
+						break;
+					default:
+						System.out.println("No action");
+						break;
+				}
+			}
+			
+			Vector <String > vec = remoteObject.infromuj("*");
+			System.out.println("There are " + vec.size() + " user(s):");
+			for (String s : vec)
+				System.out.println(" - " + s);
+			remoteObject.komunikuj("SM", args[1]);
+			remoteObject.wyrejestruj("LM");
+			remoteObject.wyrejestruj("SM");
+			System.exit(0);
+		}
+		catch(RemoteException e) 
+		{
+			e.printStackTrace();
+		}
+		catch(NotBoundException e) 
+		{
+			e.printStackTrace();
+		}
+	}
+}
